@@ -1,0 +1,26 @@
+'use strict';
+const a=require('node:assert/strict'),crypto=require('node:crypto'),{chromium,webkit,devices}=require('playwright'),{createApp}=require('../server.cjs');
+(async()=>{
+if(!process.env.TEST_DATABASE_URL)throw new Error('PostgreSQL de teste obrigatório');
+const url=new URL(process.env.TEST_DATABASE_URL);a.ok(['localhost','127.0.0.1'].includes(url.hostname));a.equal(url.pathname,'/mdn_test');
+const token=crypto.randomBytes(32).toString('hex'),app=await createApp({databaseUrl:url.href,testing:true,secure:false,origin:'http://127.0.0.1:3200',bootstrapToken:token});
+await app.pool.query('TRUNCATE mdn_security_audit,mdn_files,mdn_versions,mdn_sessions,mdn_users,mdn_workspaces CASCADE');await new Promise(r=>app.server.listen(3200,'127.0.0.1',r));
+let browser;
+try{
+browser=await chromium.launch();let context=await browser.newContext({locale:'pt-BR',timezoneId:'America/Sao_Paulo'}),page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+async function special(type,data){const f=page.locator('form[data-special="'+type+'"]');for(const[k,v]of Object.entries(data)){const el=f.locator('[name="'+k+'"]');if(await el.evaluate(e=>e.tagName)==='SELECT')await el.selectOption(v);else await el.fill(v)}await f.locator('button').click()}
+async function login(email){await page.locator('[data-go="settings"]').first().click();await page.locator('[data-auth="login"]').click();await special('login',{email,password:'senha-ui-privada-12345'});await page.waitForFunction(()=>document.getElementById('headerMode').textContent==='Homologação privada')}
+await page.goto('http://127.0.0.1:3200',{waitUntil:'networkidle'});await page.locator('[data-go="settings"]').first().click();await page.locator('[data-auth="setup"]').click();await special('setup',{token,email:'admin-ui@exemplo.test',password:'senha-ui-privada-12345'});await page.waitForFunction(()=>document.getElementById('toast').textContent.includes('Administrador criado'));
+await login('admin-ui@exemplo.test');await page.locator('.operating-grid [data-go="companies"]').click();const f=page.locator('[data-command="company_create"]');await f.locator('[name="name"]').fill('Empresa Privada Fictícia');await f.locator('[name="regime"]').selectOption('A verificar');await f.locator('button').click();await page.waitForFunction(()=>document.getElementById('companyChoice').textContent.includes('Empresa Privada Fictícia'));
+await page.reload({waitUntil:'networkidle'});a.equal(await page.locator('#headerMode').textContent(),'Homologação privada');
+a.ok(!(await page.evaluate(()=>JSON.stringify({...localStorage}))).includes('Empresa Privada Fictícia'));
+await page.locator('.operating-grid [data-go="documents"]').click();let df=page.locator('[data-command="document_create"]');await df.locator('[name="name"]').fill('Documento privado fictício');await df.locator('[name="category"]').selectOption('Contrato');await df.locator('[name="date"]').fill('2026-11-16');await df.locator('button').click();await page.waitForFunction(()=>document.querySelector('[name=documentId]')?.options.length===2);
+for(let i=1;i<=2;i++){const uf=page.locator('[data-special="upload"]');await uf.locator('[name=documentId]').selectOption({index:1});await uf.locator('[name=file]').setInputFiles({name:'teste.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\nTeste privado '+i)});await uf.locator('button').click();await page.waitForFunction(v=>document.querySelectorAll('a[download]').length===v,i)}
+const promise=page.waitForEvent('download');await page.locator('a[download]').last().click();const download=await promise,stream=await download.createReadStream();let body='';for await(const chunk of stream)body+=chunk.toString();a.match(body,/Teste privado 2/);
+await page.locator('.mdn-bottom [data-go="settings"]').click();await page.locator('[data-auth="user"]').click();await special('user',{name:'Leitor UI',email:'leitor-ui@exemplo.test',password:'senha-ui-privada-12345',role:'leitor'});await page.waitForFunction(()=>document.getElementById('toast').textContent.includes('Usuário cadastrado'));
+await page.locator('[data-auth="logout"]').click();await page.waitForFunction(()=>document.getElementById('headerMode').textContent==='Ambiente de demonstração');await context.close();await browser.close();
+browser=await webkit.launch();context=await browser.newContext({...devices['iPhone 13'],locale:'pt-BR'});page=await context.newPage();await page.goto('http://127.0.0.1:3200',{waitUntil:'networkidle'});await login('leitor-ui@exemplo.test');await page.locator('.operating-grid [data-go="companies"]').click();a.ok(await page.locator('[data-command="company_create"] button').isDisabled());a.ok((await page.locator('main').textContent()).includes('Empresa Privada Fictícia'));a.ok(!(await page.evaluate(()=>JSON.stringify({...localStorage}))).includes('Empresa Privada Fictícia'));
+a.deepEqual(errors,[]);console.log(JSON.stringify({name:'Área privada PostgreSQL',bootstrap:true,login:true,sessionReload:true,privateUploads:2,download:true,userRoles:true,iPhoneReader:true,noPrivateLocalStorage:true,errors}));
+await context.close();
+}finally{if(browser)await browser.close();await app.close()}
+})().catch(e=>{console.error(e.stack);process.exitCode=1});
