@@ -1,0 +1,35 @@
+name: Verificar MDN
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: mdn_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Inspecionar origem pública do logotipo
+        run: node tools/inspect-assets.cjs
+      - name: Testar implementação quando disponível
+        env:
+          TEST_DATABASE_URL: postgres://test:test-only@localhost:5432/mdn_test
+        run: |
+          if test -f package.json; then
+            npm install --ignore-scripts
+            npm test
+            npx playwright install --with-deps chromium webkit
+            npm run test:browser
+          fi
