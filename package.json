@@ -1,0 +1,20 @@
+{
+  "name": "mdn-gestao-fiscal",
+  "version": "0.6.0",
+  "private": true,
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "start": "node server.cjs",
+    "test": "node --test tests/domain.test.cjs tests/api.test.cjs",
+    "test:browser": "node tests/browser.cjs",
+    "test:published": "node tests/published.cjs"
+  },
+  "dependencies": {
+    "pg": "8.16.3"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

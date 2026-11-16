@@ -1,10 +1,13 @@
 name: Verificar MDN
 on: [push, pull_request, workflow_dispatch]
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     services:
       postgres:
@@ -15,21 +18,17 @@ jobs:
           POSTGRES_DB: mdn_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+          --health-cmd "pg_isready -U test" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Inspecionar origem pública do logotipo
-        run: node tools/inspect-assets.cjs
-      - name: Testar implementação quando disponível
+      - run: npm install --ignore-scripts
+      - name: Testar domínio e API PostgreSQL
         env:
           TEST_DATABASE_URL: postgres://test:test-only@localhost:5432/mdn_test
-        run: |
-          if test -f package.json; then
-            npm install --ignore-scripts
-            npm test
-            npx playwright install --with-deps chromium webkit
-            npm run test:browser
-          fi
+        run: npm test
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Testar desktop, iPhone e Android
+        run: npm run test:browser
