@@ -32,3 +32,9 @@ jobs:
       - run: npx playwright install --with-deps chromium webkit
       - name: Testar desktop, iPhone e Android
         run: npm run test:browser
+      - name: Testar interface privada PostgreSQL
+        env:
+          TEST_DATABASE_URL: postgres://test:test-only@localhost:5432/mdn_test
+        run: node tests/private-browser.cjs
+      - name: Preservar ativo original e dependências exatas
+        run: node tools/capture-assets.cjs
