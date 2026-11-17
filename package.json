@@ -7,7 +7,7 @@
   },
   "scripts": {
     "start": "node server.cjs",
-    "test": "node --test tests/domain.test.cjs tests/api.test.cjs tests/qa-fields.test.cjs tests/multiempresa.test.cjs tests/financeiro-integridade.test.cjs tests/perfis-acesso.test.cjs tests/http-seguranca.test.cjs",
+    "test": "node --test tests/domain.test.cjs tests/api.test.cjs tests/qa-fields.test.cjs tests/multiempresa.test.cjs tests/financeiro-integridade.test.cjs tests/perfis-acesso.test.cjs tests/http-seguranca.test.cjs tests/build-static.test.cjs",
     "test:browser": "node tests/browser.cjs && node tests/browser-fields.cjs",
     "test:published": "node tests/published.cjs",
     "build:static": "node scripts/build-static.cjs"
