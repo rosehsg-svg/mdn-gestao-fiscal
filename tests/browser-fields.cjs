@@ -5,8 +5,8 @@ const assert=require('node:assert/strict');
 async function check(page,base){
  const failures=[];page.on('pageerror',e=>failures.push(e.message));
  await page.goto(base,{waitUntil:'networkidle'});
- await page.locator('[data-demo="empty"]').click();
  page.on('dialog',d=>d.accept());
+ await page.locator('[data-demo="empty"]').click();
  await page.locator('.operating-grid [data-go="companies"]').click();
  const create=page.locator('form[data-command="company_create"]');
  assert.equal(await create.locator('[name="name"]').getAttribute('required'),'');
