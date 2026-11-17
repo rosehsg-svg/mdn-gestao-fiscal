@@ -36,7 +36,8 @@ async function check(page,base){
  };
  const inventory={};
  for(const [section,forms] of Object.entries(expected)){
-  await page.locator('.subnav [data-go="'+section+'"]').click();
+  await page.locator('.subnav [data-go="home"]').click();
+  await page.locator('.operating-grid [data-go="'+section+'"]').click();
   inventory[section]={};
   for(const [command,names] of Object.entries(forms)){
    const frm=page.locator('form[data-command="'+command+'"]');
