@@ -46,6 +46,14 @@ async function check(page,base){
    assert.deepEqual(actual,names,'Campos inesperados em '+command);
    const missing=await frm.locator('input:not([type=hidden]):not([type=checkbox]),select,textarea').evaluateAll(els=>els.filter(e=>!e.required&&!['contact','reference','relation'].includes(e.name)).map(e=>e.name));
    assert.deepEqual(missing,[],'Campos obrigatórios sem validação em '+command);
+   // Teste negativo sem gravar: o navegador deve bloquear cada campo obrigatório vazio.
+   const required=frm.locator('input[required]:not([type=checkbox]),select[required],textarea[required]');
+   for(let i=0;i<await required.count();i++){
+    const el=required.nth(i),original=await el.inputValue(),tag=await el.evaluate(e=>e.tagName);
+    if(tag==='SELECT')await el.selectOption('');else await el.fill('');
+    assert.equal(await el.evaluate(e=>e.validity.valueMissing),true,'Campo não bloqueou valor vazio em '+command);
+    if(tag==='SELECT')await el.selectOption(original);else await el.fill(original);
+   }
    inventory[section][command]=actual;
   }
  }
