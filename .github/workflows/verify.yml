@@ -18,7 +18,7 @@ jobs:
           POSTGRES_DB: mdn_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U test" --health-interval 5s --health-timeout 5s --health-retries 10
+          --health-cmd "pg_isready -U test -d mdn_test" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,4 +37,5 @@ jobs:
           TEST_DATABASE_URL: postgres://test:test-only@localhost:5432/mdn_test
         run: node tests/private-browser.cjs
       - name: Preservar ativo original e dependências exatas
+        if: always()
         run: node tools/capture-assets.cjs
