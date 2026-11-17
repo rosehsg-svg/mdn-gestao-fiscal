@@ -5,7 +5,7 @@ test('permissões por perfil: administração, gestão, financeiro, contabilidad
   admin:['company_create','party_create','title_create','entry_create','period_close','document_create','user_create'],
   gestor:['company_create','party_create','title_create','document_create'],
   financeiro:['title_create','document_create'],
-  contador:['entry_create','period_close'],
+  contador:['entry_create','period_close','document_create'],
   leitor:[]
  };
  const actions=['company_create','party_create','title_create','entry_create','period_close','document_create','user_create'];
