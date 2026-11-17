@@ -22,7 +22,7 @@ test('segurança HTTP em modo demonstração sem banco',async()=>{
   for(const path of ['/api/state','/api/backup','/api/files','/api/users']){
    assert.equal((await fetch(base+path)).status,503,path);
   }
-  for(const path of ['/server.cjs','/.env','/package.json','/.git/config','/api/../server.cjs']){
+  for(const path of ['/server.cjs','/domain.cjs','/.env','/package.json','/.git/config','/api/../server.cjs']){
    assert.equal((await fetch(base+path)).status,404,path);
   }
   const mutation=await fetch(base+'/api/command',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
