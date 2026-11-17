@@ -1,0 +1,60 @@
+name: MDN QA completo (dados ficticios)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app.js'
+      - 'domain.js'
+      - 'domain.cjs'
+      - 'server.cjs'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tests/**'
+      - '.github/workflows/qa-completo.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mdn_test
+          POSTGRES_PASSWORD: mdn_test_password
+          POSTGRES_DB: mdn_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mdn_test -d mdn_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TEST_DATABASE_URL: postgresql://mdn_test:mdn_test_password@127.0.0.1:5432/mdn_test
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci --ignore-scripts
+      - name: Testar regras, campos e API privada com PostgreSQL ficticio
+        run: npm test
+      - name: Instalar Chromium e WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Testar os nove modulos, campos, desktop, iPhone e Android
+        run: npm run test:browser
+      - name: Testar autenticacao, documentos e perfis privados no navegador
+        run: node tests/private-browser.cjs
+      - name: Resumo dos resultados
+        if: always()
+        run: |
+          echo "### MDN Gestao Fiscal - QA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Dados exclusivamente ficticios. Testes executados em navegadores simulados pelo Playwright." >> "$GITHUB_STEP_SUMMARY"
+          echo "Resultados e erros estao detalhados nos logs de cada etapa." >> "$GITHUB_STEP_SUMMARY"
