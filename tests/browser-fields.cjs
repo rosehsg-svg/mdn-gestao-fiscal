@@ -24,6 +24,30 @@ async function check(page,base){
   await p.locator('button').click();
   await page.waitForFunction(n=>JSON.parse(localStorage.getItem('mdn-demo-v6')).parties.length===n,kind==='customer'?1:kind==='supplier'?2:3);
  }
+ // Cobertura de campos HTML: inventário real da interface e obrigatoriedade em todos os módulos.
+ const expected={
+  companies:{company_create:['name','regime'],party_create:['name','kind','contact']},
+  contracts:{contract_create:['partyId','number','description','amount','start','end']},
+  invoices:{invoice_create:['contractId','period','date','due','retention','reviewed']},
+  finance:{title_create:['kind','partyId','description','amount','date','due']},
+  fiscal:{certificate_create:['name','expires','reference']},
+  accounting:{entry_create:['date','description','debit','credit','amount']},
+  documents:{document_create:['name','category','date','relation']}
+ };
+ const inventory={};
+ for(const [section,forms] of Object.entries(expected)){
+  await page.locator('.subnav [data-go="'+section+'"]').click();
+  inventory[section]={};
+  for(const [command,names] of Object.entries(forms)){
+   const frm=page.locator('form[data-command="'+command+'"]');
+   assert.equal(await frm.count(),1,'Formulário ausente: '+command);
+   const actual=await frm.locator('input:not([type=hidden]),select,textarea').evaluateAll(els=>els.map(e=>e.name));
+   assert.deepEqual(actual,names,'Campos inesperados em '+command);
+   const missing=await frm.locator('input:not([type=hidden]):not([type=checkbox]),select,textarea').evaluateAll(els=>els.filter(e=>!e.required&&!['contact','reference','relation'].includes(e.name)).map(e=>e.name));
+   assert.deepEqual(missing,[],'Campos obrigatórios sem validação em '+command);
+   inventory[section][command]=actual;
+  }
+ }
  await page.locator('.subnav [data-go="finance"]').click();
  const f=page.locator('form[data-command="title_create"]'),party=f.locator('[name="partyId"]');
  await f.locator('[name="kind"]').selectOption('payable');
@@ -45,7 +69,7 @@ async function check(page,base){
  assert.equal(data.titles[0].cents,1234);
  assert.equal(data.titles[0].kind,'payable');
  assert.deepEqual(failures,[]);
- return {companies:data.companies.length,parties:data.parties.length,titles:data.titles.length,consoleErrors:failures};
+ return {companies:data.companies.length,parties:data.parties.length,titles:data.titles.length,fieldsVerified:Object.values(inventory).flatMap(Object.values).reduce((n,x)=>n+x.length,0),formsVerified:Object.values(inventory).reduce((n,x)=>n+Object.keys(x).length,0),consoleErrors:failures};
 }
 (async()=>{
  const app=await createApp({databaseUrl:'',testing:true});
