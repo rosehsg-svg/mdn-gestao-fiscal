@@ -1,0 +1,3 @@
+'use strict';
+const fs=require('node:fs'),crypto=require('node:crypto'),a=require('node:assert/strict'),bytes=fs.readFileSync('assets/logo-mdn.png');
+a.equal(bytes.readUInt32BE(16),1178);a.equal(bytes.readUInt32BE(20),512);const digest=crypto.createHash('sha256').update(bytes).digest('hex');a.equal(digest,'2c3b7ecb65b18efa083fa4110f1fa7836628db662f031ec67a043ac1e254169e');console.log(JSON.stringify({asset:'assets/logo-mdn.png',width:1178,height:512,sha256:digest,original:true}));
