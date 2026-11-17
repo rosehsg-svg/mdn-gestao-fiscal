@@ -1,0 +1,25 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),M=require('../domain.cjs');
+test('regressão financeira: duplicidade, fechamento, baixa e cancelamento',()=>{
+ let s=M.blank();
+ const apply=(type,payload)=>{s=M.apply(s,{type,payload,companyId:s.companies[0]?.id},{role:'admin',name:'QA fictício'});return s};
+ const reject=(type,payload)=>{const before=JSON.stringify(s);assert.throws(()=>M.apply(s,{type,payload,companyId:s.companies[0].id},{role:'admin',name:'QA fictício'}));assert.equal(JSON.stringify(s),before)};
+ apply('company_create',{name:'Empresa fictícia',regime:'A verificar'});
+ apply('party_create',{name:'Cliente fictício',kind:'customer'});
+ apply('contract_create',{partyId:s.parties[0].id,number:'T1',description:'Serviço fictício',amount:'100',start:'2026-01-01',end:'2026-12-31'});
+ const contractId=s.contracts[0].id;
+ const invoicePayload={contractId,period:'2026-11',date:'2026-11-01',due:'2026-11-30',retention:'10',reviewed:false};
+ apply('invoice_create',invoicePayload);
+ const invoiceId=s.invoices[0].id,titleId=s.titles[0].id;
+ reject('invoice_create',{...invoicePayload,retention:'0'});
+ reject('period_close',{period:'2026-11'});
+ apply('invoice_review',{id:invoiceId});
+ apply('period_close',{period:'2026-11'});
+ reject('entry_create',{date:'2026-11-05',description:'Teste',debit:'1.1.01',credit:'3.1.01',amount:'1'});
+ reject('settlement_create',{titleId,date:'2026-11-05',amount:'10',reference:'Teste'});
+ apply('period_reopen',{period:'2026-11',reason:'Correção fictícia'});
+ apply('settlement_create',{titleId,date:'2026-11-05',amount:'90',reference:'Comprovante fictício'});
+ assert.equal(M.balance(s,titleId),0);
+ reject('settlement_create',{titleId,date:'2026-11-06',amount:'1',reference:'Excedente'});
+ reject('invoice_cancel',{id:invoiceId,date:'2026-11-06'});
+});
