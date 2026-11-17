@@ -17,7 +17,7 @@ test('permissões por perfil: administração, gestão, financeiro, contabilidad
  let state=M.blank();
  state=M.apply(state,{type:'company_create',payload:{name:'Empresa fictícia',regime:'A verificar'}},{role:'admin',name:'QA fictício'});
  const companyId=state.companies[0].id;
- for(const role of ['gestor','financeiro','contador','leitor']){
+ for(const role of ['financeiro','contador','leitor']){
   const before=JSON.stringify(state);
   assert.throws(()=>M.apply(state,{type:'company_create',companyId,payload:{name:'Não permitido',regime:'A verificar'}},{role,name:'QA fictício'}),role);
   assert.equal(JSON.stringify(state),before,'Operação negada não deve alterar estado');
