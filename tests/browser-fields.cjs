@@ -3,7 +3,7 @@ const {chromium,webkit,devices}=require('playwright');
 const {createApp}=require('../server.cjs');
 const assert=require('node:assert/strict');
 async function check(page,base){
- const failures=[];page.on('pageerror',e=>failures.push(e.message));
+ const failures=[];page.on('pageerror',e=>failures.push(e.message));page.on('console',msg=>{if(msg.type()==='error')failures.push('Console: '+msg.text())});
  await page.goto(base,{waitUntil:'networkidle'});
  page.on('dialog',d=>d.accept());
  await page.locator('[data-demo="empty"]').click();
