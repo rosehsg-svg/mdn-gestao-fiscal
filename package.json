@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node server.cjs",
     "test": "node --test tests/domain.test.cjs tests/api.test.cjs tests/qa-fields.test.cjs",
-    "test:browser": "node tests/browser.cjs",
+    "test:browser": "node tests/browser.cjs && node tests/browser-fields.cjs",
     "test:published": "node tests/published.cjs"
   },
   "dependencies": {
